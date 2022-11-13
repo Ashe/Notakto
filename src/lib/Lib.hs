@@ -3,6 +3,7 @@
 module Lib (main) where
 
 import Control.Monad (unless)
+import Foreign.C.Types (CFloat(..))
 
 import Apecs
 
@@ -51,6 +52,18 @@ update = do
   Camera c <- get global
   c' <- liftIO $ RL.updateCamera c
   set global $ Camera c'
+  handlePlayerAim
+
+
+handlePlayerAim :: System World ()
+handlePlayerAim = do
+  windowWidth <- liftIO RL.getScreenWidth
+  windowHeight <- liftIO RL.getScreenHeight
+  Camera camera <- get global
+  ray <- liftIO $ RL.getMouseRay (RL.Vector2
+    (CFloat $ fromIntegral windowWidth / 2)
+    (CFloat $ fromIntegral windowHeight / 2)) camera
+  set global $ Aim ray
 
 
 terminate :: System World ()

@@ -10,6 +10,7 @@ module Types (
   CameraComponent (..),
   BoardComponent (..),
   Cell (..),
+  PlayerAimComponent (..),
 ) where
 
 import Apecs
@@ -38,4 +39,11 @@ data BoardComponent = Board {
 } deriving (Show, Eq)
 
 
-makeWorldAndComponents "World" [''CameraComponent, ''BoardComponent]
+newtype PlayerAimComponent = Aim RL.Ray deriving (Show, Eq)
+
+
+makeWorldAndComponents "World" [
+  ''CameraComponent,
+  ''BoardComponent,
+  ''PlayerAimComponent
+  ]
