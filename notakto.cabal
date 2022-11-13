@@ -12,6 +12,9 @@ library
     base,
     apecs,
     h-raylib
+  other-modules:
+    Rendering,
+    Types
   default-language: Haskell2010
 
 executable notakto
