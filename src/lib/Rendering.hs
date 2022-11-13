@@ -26,11 +26,20 @@ render = do
     RL.beginMode3D camera
     RL.drawGrid 20 1
   renderBoards
+  renderAimRay
   liftIO $ do
     RL.endMode3D
     RL.endDrawing
 
 --------------------------------------------------------------------------------
+
+renderAimRay :: System World ()
+renderAimRay = do
+  Aim ray <- get global
+  let lineStart = addVectors (RL.ray'position ray) (Vector3 0 (-0.05) 0)
+      lineEnd = addVectors (RL.ray'position ray) $ multiplyVector (RL.ray'direction ray) 10
+  liftIO $ RL.drawLine3D lineStart lineEnd RL.yellow
+
 
 renderBoards :: System World ()
 renderBoards = do
@@ -78,6 +87,20 @@ renderCross origin i j Filled = liftIO $ do
 
 addVectors :: Vector3 -> Vector3 -> Vector3
 addVectors a b = Vector3
-    (vector3'x a + vector3'x b)
-    (vector3'y a + vector3'y b)
-    (vector3'z a + vector3'z b)
+  (vector3'x a + vector3'x b)
+  (vector3'y a + vector3'y b)
+  (vector3'z a + vector3'z b)
+
+
+multiplyVector :: Vector3 -> Float -> Vector3
+multiplyVector a b = let b' = CFloat b in Vector3
+  (vector3'x a * b')
+  (vector3'y a * b')
+  (vector3'z a * b')
+
+
+multiplyVectors :: Vector3 -> Vector3 -> Vector3
+multiplyVectors a b = Vector3
+  (vector3'x a * vector3'x b)
+  (vector3'y a * vector3'y b)
+  (vector3'z a * vector3'z b)
