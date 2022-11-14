@@ -9,6 +9,7 @@ module Types (
   initWorld,
   CameraComponent (..),
   BoardComponent (..),
+  PositionComponent (..),
   Cell (..),
   PlayerAimComponent (..),
 ) where
@@ -29,6 +30,9 @@ data Cell = Empty | Filled deriving (Show, Eq)
 -- Components --
 ----------------
 
+newtype PositionComponent = Position RL.Vector3 deriving (Show, Eq)
+
+
 newtype CameraComponent = Camera RL.Camera3D
 
 
@@ -42,8 +46,13 @@ data BoardComponent = Board {
 newtype PlayerAimComponent = Aim RL.Ray deriving (Show, Eq)
 
 
+data PlayerTargetComponent = Target Int | NoTarget deriving (Show, Eq)
+
+
 makeWorldAndComponents "World" [
   ''CameraComponent,
+  ''PositionComponent,
   ''BoardComponent,
-  ''PlayerAimComponent
+  ''PlayerAimComponent,
+  ''PlayerTargetComponent
   ]
