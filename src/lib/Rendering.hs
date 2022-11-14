@@ -13,6 +13,7 @@ import qualified Raylib.Types as RL
 import Raylib.Types (Vector3 (..))
 
 import Types
+import Util
 
 --------------------------------------------------------------------------------
 
@@ -42,23 +43,18 @@ renderAimRay = do
 
 
 renderBoards :: System World ()
-renderBoards = do
-  numBoards <- cfold (\c (Board{}) -> c + 1) 0
-  cfoldM_ (renderBoard numBoards) 0
+renderBoards = cmapM_ renderBoard
 
 
-renderBoard :: Int -> Int -> BoardComponent -> System World Int
-renderBoard total i b = do
-  renderCrosses origin b
+renderBoard :: (BoardComponent, PositionComponent) -> System World ()
+renderBoard (b, Position p) = do
+  renderCrosses p b
   liftIO $ do
-    RL.drawCube (addVectors origin $ Vector3 0.5    0 0) t 3 t RL.white
-    RL.drawCube (addVectors origin $ Vector3 (-0.5) 0 0) t 3 t RL.white
-    RL.drawCube (addVectors origin $ Vector3 0 0.5 0) 3 t t RL.white
-    RL.drawCube (addVectors origin $ Vector3 0 (-0.5) 0) 3 t t RL.white
-    pure $ i + 1
-  where offset = fromIntegral (total - 1) * 0.5
-        origin = Vector3 (CFloat (fromIntegral i - offset) * 4.5) 1.5 0
-        t = 0.05
+    RL.drawCube (addVectors p $ Vector3 0.5    0 0) t 3 t RL.white
+    RL.drawCube (addVectors p $ Vector3 (-0.5) 0 0) t 3 t RL.white
+    RL.drawCube (addVectors p $ Vector3 0 0.5 0) 3 t t RL.white
+    RL.drawCube (addVectors p $ Vector3 0 (-0.5) 0) 3 t t RL.white
+  where t = 0.05
 
 
 renderCrosses :: Vector3 -> BoardComponent -> System World ()
@@ -81,26 +77,3 @@ renderCross origin i j Filled = liftIO $ do
   RL.drawLine3D (f 0.4 (-0.4)) (f (-0.4) 0.4) RL.red
   where center = addVectors origin $ Vector3 (CFloat i) (CFloat j) 0
         f x y = addVectors center $ Vector3 x y 0
-
-
---------------------------------------------------------------------------------
-
-addVectors :: Vector3 -> Vector3 -> Vector3
-addVectors a b = Vector3
-  (vector3'x a + vector3'x b)
-  (vector3'y a + vector3'y b)
-  (vector3'z a + vector3'z b)
-
-
-multiplyVector :: Vector3 -> Float -> Vector3
-multiplyVector a b = let b' = CFloat b in Vector3
-  (vector3'x a * b')
-  (vector3'y a * b')
-  (vector3'z a * b')
-
-
-multiplyVectors :: Vector3 -> Vector3 -> Vector3
-multiplyVectors a b = Vector3
-  (vector3'x a * vector3'x b)
-  (vector3'y a * vector3'y b)
-  (vector3'z a * vector3'z b)
