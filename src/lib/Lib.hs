@@ -26,7 +26,7 @@ initialise :: System World ()
 initialise = do
   let camera = RL.Camera3D (Vector3 0 1 6) (Vector3 0 1 0) (Vector3 0 1 0) 90
         RL.cameraProjection'perspective
-  set global $ Camera camera
+  set global (Camera camera, Red)
   newGame
   liftIO $ do
     RL.initWindow 1920 1080 "App"
@@ -130,30 +130,33 @@ findCell (Vector3 x y _)
 
 handleLeftClick :: System World ()
 handleLeftClick = do
+  player <- get global
   needsRestart <- checkForGameOver
   if not needsRestart then do
-    moveMade <- tryPlaceCross
+    moveMade <- tryPlaceCross player
     when moveMade $ do
       cmap tryKillBoard
       isGameOver <- checkForGameOver
       if isGameOver then
-        liftIO $ putStrLn "Game over!"
-      else
-        liftIO $ putStrLn "Next turn!"
+        liftIO $ putStrLn $ "Game over! " ++ show player ++ " loses!"
+      else do
+        let nextPlayer = if player == Red then Blue else Red
+        set global nextPlayer
+        liftIO $ putStrLn $ "It's " ++ show nextPlayer ++ "'s turn!"
   else do
     newGame
-    liftIO $ putStrLn "Restarted game!"
+    liftIO $ putStrLn $ "Restarted game! It's " ++ show player ++ "'s turn!"
 
 
-tryPlaceCross :: System World Bool
-tryPlaceCross = do
+tryPlaceCross :: PlayerComponent -> System World Bool
+tryPlaceCross player = do
   Aim _ target <- get global
   case target of
     NoTarget -> pure False
     Target e i -> do
       board <- get e
       if getCell board i == Empty then do
-        set e $ setCell board i Filled
+        set e $ setCell board i $ Filled player
         pure True
       else
         pure False
@@ -171,7 +174,7 @@ tryKillBoard :: (BoardComponent, Not DeathComponent) -> Maybe DeathComponent
 tryKillBoard (bc, _) = if check cellCombos then Just Dead else Nothing
   where check = foldl (\dead (a, b, c) -> dead || checkCombo a b c) False
         checkCombo a b c = checkCell a && checkCell b && checkCell c
-        checkCell c = getCell bc c == Filled
+        checkCell c = case getCell bc c of Filled _ -> True ; _ -> False
 
 
 cellCombos :: [(Int, Int, Int)]

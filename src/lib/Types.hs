@@ -14,6 +14,7 @@ module Types (
   CameraComponent (..),
   BoardComponent (..),
   DeathComponent (..),
+  PlayerComponent (..),
   PlayerAimComponent (..),
 ) where
 
@@ -27,7 +28,7 @@ import qualified Raylib.Types as RL
 -- Types --
 -----------
 
-data Cell = Empty | Filled deriving (Show, Eq)
+data Cell = Empty | Filled PlayerComponent deriving (Show, Eq)
 
 
 data LookAtTarget = NoTarget | Target Entity Int deriving (Show, Eq)
@@ -52,6 +53,9 @@ data BoardComponent = Board {
 data DeathComponent = Dead deriving (Show, Eq)
 
 
+data PlayerComponent = Red | Blue deriving (Show, Eq)
+
+
 data PlayerAimComponent = Aim RL.Ray LookAtTarget deriving (Show, Eq)
 
 
@@ -60,8 +64,9 @@ makeWorldAndComponents "World" [
   ''CameraComponent,
   ''BoardComponent,
   ''DeathComponent,
+  ''PlayerComponent,
   ''PlayerAimComponent
   ]
 
 type AllComponents = (PositionComponent, CameraComponent, BoardComponent,
-  DeathComponent, PlayerAimComponent)
+  DeathComponent, PlayerComponent, PlayerAimComponent)
