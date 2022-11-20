@@ -7,10 +7,11 @@
 module Types (
   World,
   initWorld,
+  Cell (..),
+  LookAtTarget (..),
   CameraComponent (..),
   BoardComponent (..),
   PositionComponent (..),
-  Cell (..),
   PlayerAimComponent (..),
 ) where
 
@@ -25,6 +26,9 @@ import qualified Raylib.Types as RL
 -----------
 
 data Cell = Empty | Filled deriving (Show, Eq)
+
+
+data LookAtTarget = NoTarget | Target Entity Int deriving (Show, Eq)
 
 ----------------
 -- Components --
@@ -43,16 +47,12 @@ data BoardComponent = Board {
 } deriving (Show, Eq)
 
 
-newtype PlayerAimComponent = Aim RL.Ray deriving (Show, Eq)
-
-
-data PlayerTargetComponent = Target Int | NoTarget deriving (Show, Eq)
+data PlayerAimComponent = Aim RL.Ray LookAtTarget deriving (Show, Eq)
 
 
 makeWorldAndComponents "World" [
   ''CameraComponent,
   ''PositionComponent,
   ''BoardComponent,
-  ''PlayerAimComponent,
-  ''PlayerTargetComponent
+  ''PlayerAimComponent
   ]
