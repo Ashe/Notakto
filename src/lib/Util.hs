@@ -1,4 +1,5 @@
 module Util (
+  destroyEntity,
   addVectors,
   subtractVectors,
   multiplyVector,
@@ -6,11 +7,20 @@ module Util (
   magnitudeVector
 ) where
 
+import Apecs
+
 import Foreign.C.Types (CFloat(..))
 
 import Raylib.Types (Vector3 (..))
 
+import Types
+
 --------------------------------------------------------------------------------
+
+
+destroyEntity :: Entity -> System World ()
+destroyEntity e = destroy e (Proxy :: Proxy AllComponents)
+
 
 addVectors :: Vector3 -> Vector3 -> Vector3
 addVectors a b = Vector3
