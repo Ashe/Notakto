@@ -9,9 +9,10 @@ module Types (
   initWorld,
   Cell (..),
   LookAtTarget (..),
+  PositionComponent (..),
   CameraComponent (..),
   BoardComponent (..),
-  PositionComponent (..),
+  DeathComponent (..),
   PlayerAimComponent (..),
 ) where
 
@@ -47,12 +48,16 @@ data BoardComponent = Board {
 } deriving (Show, Eq)
 
 
+data DeathComponent = Dead deriving (Show, Eq)
+
+
 data PlayerAimComponent = Aim RL.Ray LookAtTarget deriving (Show, Eq)
 
 
 makeWorldAndComponents "World" [
-  ''CameraComponent,
   ''PositionComponent,
+  ''CameraComponent,
   ''BoardComponent,
+  ''DeathComponent,
   ''PlayerAimComponent
   ]

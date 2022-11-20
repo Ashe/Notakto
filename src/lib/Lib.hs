@@ -83,10 +83,10 @@ handlePlayerAim = do
   set global $ Aim ray target
 
 
-findLookAtTarget :: RL.Ray -> LookAtTarget ->
-                    (BoardComponent, PositionComponent, Entity) ->
+findLookAtTarget :: RL.Ray -> LookAtTarget -> (BoardComponent,
+                    PositionComponent, Not DeathComponent, Entity) ->
                     System World LookAtTarget
-findLookAtTarget ray target (_, Position p, e) = do
+findLookAtTarget ray target (_, Position p, _, e) = do
   if RL.rayCollision'hit hitInfo > 0 then
     getClosestTarget ray target $ Target e (findCell hitPos)
   else
@@ -125,7 +125,11 @@ handleLeftClick :: System World ()
 handleLeftClick = do
   moveMade <- tryPlaceCross
   when moveMade $ do
-    liftIO $ putStrLn "Move Made!"
+    isGameOver <- checkForGameOver
+    if isGameOver then
+      liftIO $ putStrLn "Game over!"
+    else
+      liftIO $ putStrLn "Next turn!"
 
 
 tryPlaceCross :: System World Bool
@@ -140,6 +144,38 @@ tryPlaceCross = do
         pure True
       else
         pure False
+
+
+checkForGameOver :: System World Bool
+checkForGameOver = do
+  cmap tryKillBoard
+  let countAlive :: Int -> (BoardComponent, Not DeathComponent) -> Int
+      countAlive c (_, _) = c + 1
+  count <- cfold countAlive 0
+  pure $ count <= 0
+
+
+tryKillBoard :: (BoardComponent, Not DeathComponent) -> Maybe DeathComponent
+tryKillBoard (bc, _) = if check cellCombos then Just Dead else Nothing
+  where check = foldl (\dead (a, b, c) -> dead || checkCombo a b c) False
+        checkCombo a b c = checkCell a && checkCell b && checkCell c
+        checkCell c = getCell bc c == Filled
+
+
+cellCombos :: [(Int, Int, Int)]
+cellCombos = [
+  -- Horizontal
+  (0, 1, 2),
+  (3, 4, 5),
+  (6, 7, 8),
+  -- Vertical
+  (0, 3, 6),
+  (1, 4, 7),
+  (2, 5, 8),
+  -- Diagonal
+  (0, 4, 8),
+  (2, 4, 6)
+  ]
 
 
 getCell :: BoardComponent -> Int -> Cell
