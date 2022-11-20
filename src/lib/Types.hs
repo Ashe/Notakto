@@ -8,6 +8,7 @@ module Types (
   World,
   initWorld,
   Cell (..),
+  AllComponents,
   LookAtTarget (..),
   PositionComponent (..),
   CameraComponent (..),
@@ -61,3 +62,6 @@ makeWorldAndComponents "World" [
   ''DeathComponent,
   ''PlayerAimComponent
   ]
+
+type AllComponents = (PositionComponent, CameraComponent, BoardComponent,
+  DeathComponent, PlayerAimComponent)

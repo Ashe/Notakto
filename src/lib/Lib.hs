@@ -27,11 +27,18 @@ initialise = do
   let camera = RL.Camera3D (Vector3 0 1 6) (Vector3 0 1 0) (Vector3 0 1 0) 90
         RL.cameraProjection'perspective
   set global $ Camera camera
-  createBoards 3
+  newGame
   liftIO $ do
     RL.initWindow 1920 1080 "App"
     RL.setTargetFPS 60
     RL.setCameraMode camera RL.cameraMode'firstPerson
+
+
+newGame :: System World ()
+newGame = do
+  cmapM_ deleteBoard
+  createBoards 3
+  where deleteBoard (Board{}, e) = destroyEntity e
 
 
 createBoards :: Int -> System World ()
@@ -123,13 +130,19 @@ findCell (Vector3 x y _)
 
 handleLeftClick :: System World ()
 handleLeftClick = do
-  moveMade <- tryPlaceCross
-  when moveMade $ do
-    isGameOver <- checkForGameOver
-    if isGameOver then
-      liftIO $ putStrLn "Game over!"
-    else
-      liftIO $ putStrLn "Next turn!"
+  needsRestart <- checkForGameOver
+  if not needsRestart then do
+    moveMade <- tryPlaceCross
+    when moveMade $ do
+      cmap tryKillBoard
+      isGameOver <- checkForGameOver
+      if isGameOver then
+        liftIO $ putStrLn "Game over!"
+      else
+        liftIO $ putStrLn "Next turn!"
+  else do
+    newGame
+    liftIO $ putStrLn "Restarted game!"
 
 
 tryPlaceCross :: System World Bool
@@ -148,7 +161,6 @@ tryPlaceCross = do
 
 checkForGameOver :: System World Bool
 checkForGameOver = do
-  cmap tryKillBoard
   let countAlive :: Int -> (BoardComponent, Not DeathComponent) -> Int
       countAlive c (_, _) = c + 1
   count <- cfold countAlive 0
