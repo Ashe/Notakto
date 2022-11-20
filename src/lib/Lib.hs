@@ -2,7 +2,7 @@
 
 module Lib (main) where
 
-import Control.Monad (forM_, unless)
+import Control.Monad (forM_, unless, when)
 import Foreign.C.Types (CFloat(..))
 
 import Apecs
@@ -58,6 +58,10 @@ update :: System World ()
 update = do
   updateCamera
   handlePlayerAim
+
+  clicked <- liftIO $ RL.isMouseButtonPressed 0
+  when clicked $ do
+    handleLeftClick
 
 
 updateCamera :: System World ()
@@ -117,14 +121,48 @@ findCell (Vector3 x y _)
           | otherwise = center
 
 
-updateCell :: BoardComponent -> Cell -> Int -> BoardComponent
-updateCell b c 0 = b { _tl = c }
-updateCell b c 1 = b { _tc = c }
-updateCell b c 2 = b { _tr = c }
-updateCell b c 3 = b { _ml = c }
-updateCell b c 4 = b { _mc = c }
-updateCell b c 5 = b { _mr = c }
-updateCell b c 6 = b { _bl = c }
-updateCell b c 7 = b { _bc = c }
-updateCell b c 8 = b { _br = c }
-updateCell b _ _ = b
+handleLeftClick :: System World ()
+handleLeftClick = do
+  moveMade <- tryPlaceCross
+  when moveMade $ do
+    liftIO $ putStrLn "Move Made!"
+
+
+tryPlaceCross :: System World Bool
+tryPlaceCross = do
+  Aim _ target <- get global
+  case target of
+    NoTarget -> pure False
+    Target e i -> do
+      board <- get e
+      if getCell board i == Empty then do
+        set e $ setCell board i Filled
+        pure True
+      else
+        pure False
+
+
+getCell :: BoardComponent -> Int -> Cell
+getCell b 0 =_tl b
+getCell b 1 =_tc b
+getCell b 2 =_tr b
+getCell b 3 =_ml b
+getCell b 4 =_mc b
+getCell b 5 =_mr b
+getCell b 6 =_bl b
+getCell b 7 =_bc b
+getCell b 8 =_br b
+getCell _ _ = Empty
+
+
+setCell :: BoardComponent -> Int -> Cell -> BoardComponent
+setCell b 0 c = b { _tl = c }
+setCell b 1 c = b { _tc = c }
+setCell b 2 c = b { _tr = c }
+setCell b 3 c = b { _ml = c }
+setCell b 4 c = b { _mc = c }
+setCell b 5 c = b { _mr = c }
+setCell b 6 c = b { _bl = c }
+setCell b 7 c = b { _bc = c }
+setCell b 8 c = b { _br = c }
+setCell b _ _ = b
