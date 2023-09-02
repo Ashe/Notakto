@@ -37,6 +37,9 @@ data LookAtTarget = NoTarget | Target Entity Int deriving (Show, Eq)
 -- Components --
 ----------------
 
+newtype CameraLocation = CameraLocation RL.Vector3 deriving (Show, Eq)
+
+
 newtype PositionComponent = Position RL.Vector3 deriving (Show, Eq)
 
 

@@ -3,15 +3,16 @@ module Rendering (
 ) where
 
 import Control.Monad (when)
-import Foreign.C.Types (CFloat(..))
 
 import Apecs
 
-import qualified Raylib as RL
-import qualified Raylib.Colors as RL
-import qualified Raylib.Constants as RL
+import qualified Raylib.Core as RL
+import qualified Raylib.Core.Text as RL
+import qualified Raylib.Core.Models as RL
+import qualified Raylib.Util.Colors as RL
 import qualified Raylib.Types as RL
 import Raylib.Types (Vector3 (..))
+import Raylib.Util.Math
 
 import Types
 import Util
@@ -38,9 +39,8 @@ render = do
 renderAimRay :: System World ()
 renderAimRay = do
   (Aim ray _, player) <- get global
-  let lineStart = addVectors (RL.ray'position ray) (Vector3 0 (-0.05) 0)
-      lineEnd = addVectors (RL.ray'position ray) $
-        multiplyVector (RL.ray'direction ray) 10
+  let lineStart = RL.ray'position ray |+| Vector3 0 (-0.05) 0
+      lineEnd = RL.ray'position ray |+| (RL.ray'direction ray |* 10)
   liftIO $ RL.drawLine3D lineStart lineEnd $ playerColour player
 
 
@@ -55,10 +55,10 @@ renderBoard :: LookAtTarget -> PlayerComponent ->
 renderBoard target player (b, Position p, e) = do
   renderCrosses p (b, e) target player
   liftIO $ do
-    RL.drawCube (addVectors p $ Vector3 0.5    0 0) t 3 t RL.white
-    RL.drawCube (addVectors p $ Vector3 (-0.5) 0 0) t 3 t RL.white
-    RL.drawCube (addVectors p $ Vector3 0 0.5 0) 3 t t RL.white
-    RL.drawCube (addVectors p $ Vector3 0 (-0.5) 0) 3 t t RL.white
+    RL.drawCube (p |+| Vector3 0.5    0 0) t 3 t RL.white
+    RL.drawCube (p |+| Vector3 (-0.5) 0 0) t 3 t RL.white
+    RL.drawCube (p |+| Vector3 0 0.5 0) 3 t t RL.white
+    RL.drawCube (p |+| Vector3 0 (-0.5) 0) 3 t t RL.white
   where t = 0.05
 
 
@@ -88,12 +88,12 @@ renderCross _ _ _ Empty False _ = pure ()
 renderCross origin i j (Filled player) _ _ = liftIO $ do
   RL.drawLine3D (f (-0.4) (-0.4)) (f 0.4 0.4) $ playerColour player
   RL.drawLine3D (f 0.4 (-0.4)) (f (-0.4) 0.4) $ playerColour player
-  where center = addVectors origin $ Vector3 (CFloat i) (CFloat j) 0
-        f x y = addVectors center $ Vector3 x y 0
+  where center = origin |+| Vector3 i j 0
+        f x y = center |+| Vector3 x y 0
 
 renderCross origin i j Empty True player = liftIO $ do
     RL.drawCircle3D center 0.4 (Vector3 0 1 0) 0 $ playerColour player
-  where center = addVectors origin $ Vector3 (CFloat i) (CFloat j) 0
+  where center = origin |+| Vector3 i j 0
 
 
 playerColour :: PlayerComponent -> RL.Color

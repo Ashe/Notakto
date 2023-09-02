@@ -2,15 +2,18 @@
 
 module Lib (main) where
 
+import Control.Applicative (liftA2)
 import Control.Monad (forM_, unless, when)
-import Foreign.C.Types (CFloat(..))
 
 import Apecs
 
-import qualified Raylib as RL
-import qualified Raylib.Constants as RL
+import qualified Raylib.Core as RL
+import qualified Raylib.Core.Models as RL
 import qualified Raylib.Types as RL
-import Raylib.Types (Vector3 (..))
+import qualified Raylib.Util as RL
+import qualified Raylib.Util.Camera as RL
+import Raylib.Types (Vector2 (..), Vector3 (..))
+import Raylib.Util.Math
 
 import Rendering
 import Types
@@ -19,19 +22,23 @@ import Util
 --------------------------------------------------------------------------------
 
 main :: IO ()
-main = initWorld >>= runSystem (initialise >> run >> terminate)
+main = initWorld >>= runSystem (do
+  window <- initialise
+  run
+  terminate window)
 
 
-initialise :: System World ()
+initialise :: System World RL.WindowResources
 initialise = do
   let camera = RL.Camera3D (Vector3 0 1 6) (Vector3 0 1 0) (Vector3 0 1 0) 90
-        RL.cameraProjection'perspective
+        RL.CameraPerspective
   set global (Camera camera, Red)
   newGame
   liftIO $ do
-    RL.initWindow 1920 1080 "App"
+    window <- RL.initWindow 1920 1080 "App"
     RL.setTargetFPS 60
-    RL.setCameraMode camera RL.cameraMode'firstPerson
+    RL.disableCursor
+    pure window
 
 
 newGame :: System World ()
@@ -49,8 +56,8 @@ createBoards n = do
           let x' = (fromIntegral x - (fromIntegral (n - 1) / 2)) * 4.5]
 
 
-terminate :: System World ()
-terminate = liftIO RL.closeWindow
+terminate :: RL.WindowResources -> System World ()
+terminate window = liftIO $ RL.closeWindow window
 
 
 run :: System World ()
@@ -65,8 +72,7 @@ update :: System World ()
 update = do
   updateCamera
   handlePlayerAim
-
-  clicked <- liftIO $ RL.isMouseButtonPressed 0
+  clicked <- liftIO $ RL.isMouseButtonPressed RL.MouseButtonLeft
   when clicked $ do
     handleLeftClick
 
@@ -74,8 +80,27 @@ update = do
 updateCamera :: System World ()
 updateCamera = do
   Camera c <- get global
-  c' <- liftIO $ RL.updateCamera c
-  set global $ Camera c'
+  newCam <- liftIO $ do
+    dt <- RL.getFrameTime
+    forward <- checkKey RL.KeyW RL.KeyUp
+    left <- checkKey RL.KeyA RL.KeyLeft
+    backward <- checkKey RL.KeyS RL.KeyDown
+    right <- checkKey RL.KeyD RL.KeyRight
+    Vector2 i j <- RL.getMouseDelta
+    let speed = 5.0
+        turnspeed = 1
+        Vector3 x _ z =
+          (RL.getCameraForward c |* (forward - backward)) |+|
+          (RL.getCameraRight c |* (right - left))
+        c' = RL.cameraMove c $ safeNormalize (Vector3 x 0 z) |* (speed * dt)
+        c'' = RL.cameraYaw c' (-i * turnspeed * dt) False
+    pure $ RL.cameraPitch c'' (-j * turnspeed * dt) False False False
+  set global $ Camera newCam
+  where checkKey a b =
+          liftA2 (\x y -> if x || y then 1 else 0) (RL.isKeyDown a) (RL.isKeyDown b)
+        safeNormalize v
+          | magnitude v == 0 = v
+          | otherwise = vectorNormalize v
 
 
 handlePlayerAim :: System World ()
@@ -84,8 +109,8 @@ handlePlayerAim = do
   windowHeight <- liftIO RL.getScreenHeight
   Camera camera <- get global
   ray <- liftIO $ RL.getMouseRay (RL.Vector2
-    (CFloat $ fromIntegral windowWidth / 2)
-    (CFloat $ fromIntegral windowHeight / 2)) camera
+    (fromIntegral windowWidth / 2)
+    (fromIntegral windowHeight / 2)) camera
   target <- cfoldM (findLookAtTarget ray) NoTarget
   set global $ Aim ray target
 
@@ -94,14 +119,14 @@ findLookAtTarget :: RL.Ray -> LookAtTarget -> (BoardComponent,
                     PositionComponent, Not DeathComponent, Entity) ->
                     System World LookAtTarget
 findLookAtTarget ray target (_, Position p, _, e) = do
-  if RL.rayCollision'hit hitInfo > 0 then
+  if RL.rayCollision'hit hitInfo then
     getClosestTarget ray target $ Target e (findCell hitPos)
   else
     pure target
-  where from = addVectors p $ Vector3 (-1.5) (-1.5) (-0.05)
-        to = addVectors p $ Vector3 1.5 1.5 0.05
+  where from = p |+| Vector3 (-1.5) (-1.5) (-0.05)
+        to = p |+| Vector3 1.5 1.5 0.05
         hitInfo = RL.getRayCollisionBox ray $ RL.BoundingBox from to
-        hitPos = subtractVectors (RL.rayCollision'point hitInfo) p
+        hitPos = RL.rayCollision'point hitInfo |-| p
 
 
 getClosestTarget :: RL.Ray -> LookAtTarget -> LookAtTarget ->
@@ -110,8 +135,8 @@ getClosestTarget ray a@(Target eA _) b@(Target eB _) = do
   Position posA <- get eA
   Position posB <- get eB
   let p = RL.ray'position ray
-      distA = magnitudeVector $ subtractVectors posA p
-      distB = magnitudeVector $ subtractVectors posB p
+      distA = magnitude $ posA |-| p
+      distB = magnitude $ posB |-| p
   pure $ if distA <= distB then a else b
 getClosestTarget _ a NoTarget = pure a
 getClosestTarget _ NoTarget b = pure b
